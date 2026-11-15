@@ -14,6 +14,8 @@ import com.example.Product_Service.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import feign.FeignException;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -71,7 +73,10 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "product-detail", key = "#id")
     public ProductResponse findById(Long id) {
+        // This log is inside the cached method, so it appears only on a cache miss.
+        log.info("Cache miss for product {}; querying database", id);
         return ProductResponse.from(getProduct(id));
     }
 
@@ -84,6 +89,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @CacheEvict(value = "product-detail", key = "#id")
     public ProductResponse update(Long id, ProductRequest request) {
         ProductEntity product = getProduct(id);
         product.setNama(request.getNama().trim());
@@ -96,6 +102,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @CacheEvict(value = "product-detail", key = "#id")
     public void delete(Long id) {
         ProductEntity product = getProduct(id);
         repository.delete(product);

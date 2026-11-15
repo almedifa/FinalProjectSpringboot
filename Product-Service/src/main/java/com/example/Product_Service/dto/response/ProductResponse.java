@@ -4,12 +4,15 @@ import com.example.Product_Service.entity.ProductEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import java.math.BigDecimal;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 // DTO boundary: API responses expose product fields, never the persistence entity.
 @Data
 @AllArgsConstructor
-public class ProductResponse {
+public class ProductResponse implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private Long id;
     private String nama;
     private BigDecimal harga;

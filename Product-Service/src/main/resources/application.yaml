@@ -10,6 +10,12 @@ spring:
       ddl-auto: update
     open-in-view: false
     show-sql: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  cache:
+    type: redis
 
 server:
   port: 8082
