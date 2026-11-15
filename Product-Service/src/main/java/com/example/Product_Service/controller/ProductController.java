@@ -20,7 +20,7 @@ import org.springframework.http.HttpHeaders;
 public class ProductController {
     private final ProductService productService;
 
-    @PostMapping
+    @PostMapping("/add")
     public ResponseEntity<BaseResponse<ProductResponse>> create(
             @Valid @RequestBody ProductRequest request,
             @RequestHeader("X-User-Id") String userId) {

@@ -2,15 +2,19 @@ package com.example.Product_Service.service.impl;
 
 import com.example.Product_Service.dto.request.ProductRequest;
 import com.example.Product_Service.dto.request.ProductImportRequest;
+import com.example.Product_Service.dto.feign.DummyJsonProductRequest;
+import com.example.Product_Service.dto.feign.DummyJsonProductResponse;
 import com.example.Product_Service.dto.response.ProductResponse;
 import com.example.Product_Service.dto.response.ProductImportResult;
 import com.example.Product_Service.entity.ProductEntity;
 import com.example.Product_Service.exception.ProductNotFoundException;
 import com.example.Product_Service.repository.ProductRepository;
+import com.example.Product_Service.rest.DummyJsonWriteClient;
 import com.example.Product_Service.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import feign.FeignException;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,6 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor(onConstructor_ = @__(@Autowired))
 public class ProductServiceImpl implements ProductService {
     private final ProductRepository repository;
+    private final DummyJsonWriteClient dummyJsonWriteClient;
 
     @Override
     public ProductResponse create(ProductRequest request, String userId) {
@@ -30,9 +35,11 @@ public class ProductServiceImpl implements ProductService {
         product.setKategori(request.getKategori().trim());
         product.setBrand(request.getBrand().trim());
         product.setDateAdded(LocalDateTime.now());
-        ProductResponse response = ProductResponse.from(repository.save(product));
-        log.info("Product {} created by user {}", response.getId(), userId);
-        return response;
+        ProductEntity saved = repository.save(product);
+        // Manual creation is saved locally first, then mirrored as a best-effort DummyJSON call.
+        syncCreate(saved);
+        log.info("Product {} created by user {}", saved.getId(), userId);
+        return ProductResponse.from(saved);
     }
 
     @Override
@@ -57,6 +64,8 @@ public class ProductServiceImpl implements ProductService {
         product.setBrand(request.getBrand().trim());
         product.setDateAdded(LocalDateTime.now());
         ProductEntity saved = repository.save(product);
+        // W5 imports also create local products, so B4 mirrors their create operation as well.
+        syncCreate(saved);
         log.info("Imported product sourceId={} as productId={}", saved.getSourceId(), saved.getId());
         return new ProductImportResult("IMPORTED", saved.getId(), "Produk berhasil diimpor");
     }
@@ -81,12 +90,56 @@ public class ProductServiceImpl implements ProductService {
         product.setHarga(request.getHarga());
         product.setKategori(request.getKategori().trim());
         product.setBrand(request.getBrand().trim());
-        return ProductResponse.from(repository.save(product));
+        ProductEntity saved = repository.save(product);
+        syncUpdate(saved);
+        return ProductResponse.from(saved);
     }
 
     @Override
     public void delete(Long id) {
-        repository.delete(getProduct(id));
+        ProductEntity product = getProduct(id);
+        repository.delete(product);
+        syncDelete(product);
+    }
+
+    private void syncCreate(ProductEntity product) {
+        try {
+            DummyJsonProductResponse response = dummyJsonWriteClient.addProduct(toDummyJsonRequest(product));
+            log.info("DummyJSON add response: {}", response);
+        } catch (FeignException exception) {
+            log.warn("DummyJSON add failed for local product {} (HTTP {}); local save remains successful",
+                    product.getId(), exception.status());
+        }
+    }
+
+    private void syncUpdate(ProductEntity product) {
+        try {
+            DummyJsonProductResponse response = dummyJsonWriteClient.updateProduct(
+                    getDummyJsonId(product), toDummyJsonRequest(product));
+            log.info("DummyJSON update response for product {}: {}", product.getId(), response);
+        } catch (FeignException exception) {
+            log.warn("DummyJSON update failed for local product {} (HTTP {}); local update remains successful",
+                    product.getId(), exception.status());
+        }
+    }
+
+    private void syncDelete(ProductEntity product) {
+        try {
+            DummyJsonProductResponse response = dummyJsonWriteClient.deleteProduct(getDummyJsonId(product));
+            log.info("DummyJSON delete response for product {}: {}", product.getId(), response);
+        } catch (FeignException exception) {
+            log.warn("DummyJSON delete failed for local product {} (HTTP {}); local delete remains successful",
+                    product.getId(), exception.status());
+        }
+    }
+
+    private DummyJsonProductRequest toDummyJsonRequest(ProductEntity product) {
+        return new DummyJsonProductRequest(product.getNama(), product.getHarga(),
+                product.getKategori(), product.getBrand());
+    }
+
+    private Long getDummyJsonId(ProductEntity product) {
+        return product.getSourceId() == null ? product.getId() : product.getSourceId();
     }
 
     private ProductEntity getProduct(Long id) {
