@@ -29,3 +29,8 @@ eureka:
 
 dummyjson:
   base-url: ${DUMMYJSON_BASE_URL:https://dummyjson.com}
+
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  topic:
+    product-created: product-created

@@ -10,10 +10,13 @@ import com.example.Product_Service.entity.ProductEntity;
 import com.example.Product_Service.exception.ProductNotFoundException;
 import com.example.Product_Service.repository.ProductRepository;
 import com.example.Product_Service.rest.DummyJsonWriteClient;
+import com.example.Product_Service.producer.ProductCreatedProducer;
+import com.example.Product_Service.dto.event.ProductCreatedEvent;
 import com.example.Product_Service.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import feign.FeignException;
@@ -28,6 +31,10 @@ import java.util.List;
 public class ProductServiceImpl implements ProductService {
     private final ProductRepository repository;
     private final DummyJsonWriteClient dummyJsonWriteClient;
+    private final ProductCreatedProducer productCreatedProducer;
+
+    @Value("${kafka.topic.product-created}")
+    private String productCreatedTopic;
 
     @Override
     public ProductResponse create(ProductRequest request, String userId) {
@@ -38,6 +45,7 @@ public class ProductServiceImpl implements ProductService {
         product.setBrand(request.getBrand().trim());
         product.setDateAdded(LocalDateTime.now());
         ProductEntity saved = repository.save(product);
+        publishProductCreated(saved);
         // Manual creation is saved locally first, then mirrored as a best-effort DummyJSON call.
         syncCreate(saved);
         log.info("Product {} created by user {}", saved.getId(), userId);
@@ -66,6 +74,7 @@ public class ProductServiceImpl implements ProductService {
         product.setBrand(request.getBrand().trim());
         product.setDateAdded(LocalDateTime.now());
         ProductEntity saved = repository.save(product);
+        publishProductCreated(saved);
         // W5 imports also create local products, so B4 mirrors their create operation as well.
         syncCreate(saved);
         log.info("Imported product sourceId={} as productId={}", saved.getSourceId(), saved.getId());
@@ -143,6 +152,12 @@ public class ProductServiceImpl implements ProductService {
     private DummyJsonProductRequest toDummyJsonRequest(ProductEntity product) {
         return new DummyJsonProductRequest(product.getNama(), product.getHarga(),
                 product.getKategori(), product.getBrand());
+    }
+
+    private void publishProductCreated(ProductEntity product) {
+        ProductCreatedEvent event = new ProductCreatedEvent(product.getId(), product.getNama(),
+                product.getHarga(), product.getKategori(), product.getBrand(), product.getDateAdded());
+        productCreatedProducer.send(productCreatedTopic, event);
     }
 
     private Long getDummyJsonId(ProductEntity product) {
