@@ -4,6 +4,7 @@ import com.example.Product_Service.entity.ProductEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 // DTO boundary: API responses expose product fields, never the persistence entity.
 @Data
@@ -14,9 +15,10 @@ public class ProductResponse {
     private BigDecimal harga;
     private String kategori;
     private String brand;
+    private LocalDateTime dateAdded;
 
     public static ProductResponse from(ProductEntity product) {
         return new ProductResponse(product.getId(), product.getNama(), product.getHarga(),
-                product.getKategori(), product.getBrand());
+                product.getKategori(), product.getBrand(), product.getDateAdded());
     }
 }

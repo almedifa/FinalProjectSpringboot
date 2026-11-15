@@ -7,4 +7,6 @@ import java.util.List;
 public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
     // Same case-insensitive containing-search approach used by analyzer-service.
     List<ProductEntity> findByNamaContainingIgnoreCase(String huruf);
+
+    boolean existsBySourceId(Long sourceId);
 }

@@ -1,7 +1,9 @@
 package com.example.Product_Service.controller;
 
 import com.example.Product_Service.dto.request.ProductRequest;
+import com.example.Product_Service.dto.request.ProductImportRequest;
 import com.example.Product_Service.dto.response.BaseResponse;
+import com.example.Product_Service.dto.response.ProductImportResult;
 import com.example.Product_Service.dto.response.ProductResponse;
 import com.example.Product_Service.service.ProductService;
 import jakarta.validation.Valid;
@@ -24,6 +26,12 @@ public class ProductController {
             @RequestHeader("X-User-Id") String userId) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(BaseResponse.success("Produk berhasil dibuat", productService.create(request, userId)));
+    }
+
+    // Internal scheduler endpoint; the Gateway blocks external access to this path.
+    @PostMapping("/internal/import")
+    public BaseResponse<ProductImportResult> importProduct(@Valid @RequestBody ProductImportRequest request) {
+        return BaseResponse.success("Hasil impor produk", productService.importProduct(request));
     }
 
     @GetMapping("/{id}")
