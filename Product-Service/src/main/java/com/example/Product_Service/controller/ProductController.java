@@ -11,17 +11,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpHeaders;
 
 @RestController
-@RequestMapping("/product")
 @RequiredArgsConstructor(onConstructor_ = @__(@Autowired))
 public class ProductController {
     private final ProductService productService;
 
     @PostMapping
-    public ResponseEntity<BaseResponse<ProductResponse>> create(@Valid @RequestBody ProductRequest request) {
+    public ResponseEntity<BaseResponse<ProductResponse>> create(
+            @Valid @RequestBody ProductRequest request,
+            @RequestHeader("X-User-Id") String userId) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(BaseResponse.success("Produk berhasil dibuat", productService.create(request)));
+                .body(BaseResponse.success("Produk berhasil dibuat", productService.create(request, userId)));
     }
 
     @GetMapping("/{id}")

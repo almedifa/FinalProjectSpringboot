@@ -19,13 +19,15 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository repository;
 
     @Override
-    public ProductResponse create(ProductRequest request) {
+    public ProductResponse create(ProductRequest request, String userId) {
         ProductEntity product = new ProductEntity();
         product.setNama(request.getNama().trim());
         product.setHarga(request.getHarga());
         product.setKategori(request.getKategori().trim());
         product.setBrand(request.getBrand().trim());
-        return ProductResponse.from(repository.save(product));
+        ProductResponse response = ProductResponse.from(repository.save(product));
+        log.info("Product {} created by user {}", response.getId(), userId);
+        return response;
     }
 
     @Override
