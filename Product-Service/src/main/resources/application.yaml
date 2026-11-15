@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: product-service
+  datasource:
+    url: jdbc:postgresql://localhost:5433/personaldata
+    username: ${DB_USERNAME:personaldata}
+    password: ${DB_PASSWORD:personaldata}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: true
+
+server:
+  port: 8082
