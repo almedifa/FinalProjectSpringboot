@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: auth-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/personaldata
+    username: ${DB_USERNAME:personaldata}
+    password: ${DB_PASSWORD:personaldata}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+
+server:
+  port: 8081
+  servlet:
+    context-path: /auth
+
+jwt:
+  secret: ${JWT_SECRET:local-dev-auth-secret-change-this-32chars}
+  expiration: ${JWT_EXPIRATION:360000}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8082/eureka
